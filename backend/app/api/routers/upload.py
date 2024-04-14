@@ -2,7 +2,7 @@ import os
 import shutil
 from fastapi import APIRouter, File, UploadFile, Form
 from typing import List
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field
 
 # Import the required functions for processing the uploaded documents
 from backend.app.engine.loaders.file import get_file_documents, FileLoaderConfig
@@ -11,20 +11,12 @@ from app.engine.index import get_index
 router = APIRouter()
 
 class DocumentUpload(BaseModel):
-    files: List[UploadFile] = []
-    use_llama_parse: bool = Form(...)
-    use_unstructured: bool = Form(...)
-
-    @classmethod
-    def validate(cls, v):
-        if not v.get("files"):
-            raise ValueError("No files provided")
-        if v.get("use_llama_parse") and v.get("use_unstructured"):
-            raise ValueError("Please choose either 'use_llama_parse' or 'use_unstructured'")
-        return v
+    files: List[UploadFile] = Field(..., description="List of files to upload")
+    use_llama_parse: bool = Field(..., description="Whether to use Llama parse")
+    use_unstructured: bool = Field(..., description="Whether to use unstructured")
 
 @router.post("")
-async def upload_documents(docs: DocumentUpload = DocumentUpload.validate):
+async def upload_documents(docs: DocumentUpload):
     # Create a temporary directory to store the uploaded files
     data_dir = "tmp"
     os.makedirs(data_dir, exist_ok=True)
@@ -48,9 +40,9 @@ async def upload_documents(docs: DocumentUpload = DocumentUpload.validate):
     try:
         # Load the documents
         documents = get_file_documents(config)
-        # Process the loaded documents as needed
-        index = get_index()
 
+        # Create index from documents
+        index = get_index()
         index.from_documents(documents)
 
         # Clean up the temporary directory

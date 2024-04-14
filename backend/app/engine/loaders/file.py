@@ -1,19 +1,9 @@
 import os
 from llama_parse import LlamaParse
 from llama_index.readers.file import UnstructuredReader
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field
 
-
-class FileLoaderConfig(BaseModel):
-    data_dir: str = "data"
-    use_llama_parse: bool = False
-    use_unstructured: bool = False
-
-    @validator("data_dir")
-    def data_dir_must_exist(cls, v):
-        if not os.path.isdir(v):
-            raise ValueError(f"Directory '{v}' does not exist")
-        return v
+# ** PARSERS **
 
 
 def llama_parse_parser():
@@ -25,16 +15,39 @@ def llama_parse_parser():
     parser = LlamaParse(result_type="markdown", verbose=True, language="en")
     return parser
 
+
 def Unstructured_parser():
     if os.getenv("UNSTRUCTURED_API_KEY") in None:
         raise ValueError(
             "UNSTRUCTURED_API_KEY environment variable is not set. "
             "Please set it in .env file or in your shell environment then run again!"
         )
-    parser = UnstructuredReader(api=True, url= 'https://api.unstructured.io',api_key=os.getenv("UNSTRUCTURED_API_KEY"))
+    parser = UnstructuredReader(
+        api=True, url='https://api.unstructured.io', api_key=os.getenv("UNSTRUCTURED_API_KEY"))
     return parser
 
+# ** MODEL **
+
+
+class FileLoaderConfig(BaseModel):
+    data_dir: str = Field(
+        "data", description="Directory where files are stored")
+    use_llama_parse: bool = Field(
+        False, description="Whether to use Llama parse")
+    use_unstructured: bool = Field(
+        False, description="Whether to use unstructured")
+
+    @Field.validator("data_dir", pre=True)
+    def data_dir_must_exist(cls, value):
+        if not os.path.isdir(value):
+            raise ValueError(f"Directory '{value}' does not exist")
+
+
+# ** GET FILE DOCUMENTS **
 def get_file_documents(config: FileLoaderConfig):
+    """
+    get_content_from_documents: Used to obtain the content of PDF files from a directory
+    """
     from llama_index.core.readers import SimpleDirectoryReader
 
     reader = SimpleDirectoryReader(
