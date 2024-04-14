@@ -1,13 +1,17 @@
 import Header from "@/app/components/header";
+import Sidebar from "@/app/components/sidebar";
+import Footer from "@/app/components/footer";
+
 import ChatSection from "./components/chat-section";
-import Footer from "./components/footer";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center gap-4 p-24 background-gradient">
-      <Header />
-      <ChatSection />
-      <Footer />
+    <main className="h-full flex gap-4 p-24 background-gradient">
+      <Sidebar />
+      <section className="w-9/12 flex flex-col">
+        <ChatSection />
+        <Footer />
+      </section>
     </main>
   );
 }
