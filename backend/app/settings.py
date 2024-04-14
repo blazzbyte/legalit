@@ -23,7 +23,7 @@ def llm_config_from_env() -> Dict:
 def embedding_config_from_env() -> Dict:
     model = os.getenv("EMBEDDING_MODEL")
     dimension = os.getenv("EMBEDDING_DIM")
-
+ 
     config = {
         "model": model,
         "dimension": int(dimension) if dimension is not None else None,
