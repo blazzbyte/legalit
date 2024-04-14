@@ -10,3 +10,7 @@ storage/
 
 # Environment variables
 .env
+.venv
+
+#files
+.github_access_token
