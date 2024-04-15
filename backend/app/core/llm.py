@@ -17,7 +17,7 @@ class TogetherChat:
     # ** LLM Model **
 
     def _completion_to_prompt(completion: str) -> str:
-        return f"<s>[INST] {completion} [/INST] </s>\n"
+        return f"<s>[] {completion} [/] </s>\n"
 
     def run(self, query: str):
 

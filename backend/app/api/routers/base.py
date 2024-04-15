@@ -52,55 +52,58 @@ async def parse_chat_data(data: _ChatData) -> Tuple[str, List[ChatMessage]]:
 
 # ** ROUTES **
 @r.post("")
-async def chat(request: Request, data: _ChatData, file: UploadFile = File(...)):
+async def chat(request: Request, data: _ChatData, file: Optional[UploadFile] = File(None)):
 
     # ** Input Parser **
     last_message, history = await parse_chat_data(data)
 
-    # ** Document Content **
-    data_dir = "tmp"
-    file_path = os.path.join(data_dir, file.filename)
+    if file:
+        # ** Document Content **
+        data_dir = "tmp"
+        file_path = os.path.join(data_dir, file.filename)
 
-    with open(file_path, "wb") as temp_file:
-        contents = await file.read()
-        temp_file.write(contents)
+        with open(file_path, "wb") as temp_file:
+            contents = await file.read()
+            temp_file.write(contents)
 
-    config = FileLoaderConfig(
-        data_dir=file_path,
-        use_llama_parse=False,
-        use_unstructured=True
-    )
-    
-    try:
+        config = FileLoaderConfig(
+            data_dir=file_path,
+            use_llama_parse=False,
+            use_unstructured=True
+        )
+
         documents = get_file_documents(config)
         content = documents[0].get_content()
 
         formatted_prompt_keywords = Prompts.formatPromptKeywords(last_message, content)
 
-        llm = TogetherChat()
+    else:
+        formatted_prompt_keywords = Prompts.formatPromptKeywords(last_message)
 
-        keywords = llm.run(formatted_prompt_keywords)
+    llm = TogetherChat()
 
-        index = get_index()
+    keywords = llm.run(formatted_prompt_keywords)
 
-        retriver = index.as_retriever()
+    index = get_index()
 
-        nodes = retriver.retrieve(keywords)
+    retriver = index.as_retriever()
 
-        # TODO: Implement a parser to get content and metadata for every node
-        context = [node.get_content() for node in nodes]
+    nodes = retriver.retrieve(keywords)
 
+    # TODO: Implement a parser to get content and metadata for every node
+    context = [node.text for node in nodes]
+
+    if file:
         formatted_prompt_analyst = Prompts.formatPromptAnalyst(last_message, context, content)
+    else:
+        formatted_prompt_analyst = Prompts.formatPromptAnalyst(last_message, context="")
 
-        response = await llm.run_chat(formatted_prompt_analyst, history)
+    response = await llm.run_chat(formatted_prompt_analyst, history)
 
-        async def event_generator():
-            async for token in response:
-                if await request.is_disconnected():
-                    break
-                yield token
+    async def event_generator():
+        async for token in response:
+            if await request.is_disconnected():
+                break
+            yield token
         
-        return StreamingResponse(event_generator(), media_type="text/plain")
-
-    except:
-        print('An exception occurred')
+    return StreamingResponse(event_generator(), media_type="text/plain")

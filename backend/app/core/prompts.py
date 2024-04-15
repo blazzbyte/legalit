@@ -1,5 +1,12 @@
 class Prompts:
-    _promptKeywords = """
+
+    _keywords = """
+    # USER INSTRUCTION
+    {instruction}
+    Considering the user's instruction and the content of the legal document to be reviewed, it generates a list of terms or keywords to perform a search in a repository of applicable regulations and laws. These terms should be descriptive, not too short to create ambiguity, nor too long to reduce the efficiency of the search.
+    """
+
+    _keywords_with_document = """
     # USER INSTRUCTION
     {instruction}
     # LEGAL DOCUMENT
@@ -7,7 +14,15 @@ class Prompts:
     Considering the user's instruction and the content of the legal document to be reviewed, it generates a list of terms or keywords to perform a search in a repository of applicable regulations and laws. These terms should be descriptive, not too short to create ambiguity, nor too long to reduce the efficiency of the search.
     """
 
-    _promptAnalyst = """
+    _analyst = """
+    # LEGAL CONTEXT
+    {context}
+    Considering the legal context. Respond the user question as better as you can:
+    # USER QUESTION
+    {instruction}
+    """
+
+    _analyst_with_document = """
     # LEGAL CONTEXT
     {context}
     # USER INSTRUCTION
@@ -18,9 +33,15 @@ class Prompts:
     """
 
     @staticmethod
-    def formatPromptKeywords(instruction: str, document: str) -> str:
-        return Prompts._promptKeywords.format(instruction=instruction, document=document)
+    def formatPromptKeywords(instruction: str, document: str = "") -> str:
+        if document:
+            return Prompts._keywords_with_document.format(instruction=instruction, document=document)
+        else:
+            return Prompts._keywords.format(instruction=instruction)
 
     @staticmethod
-    def formatPromptAnalyst(instruction: str, context: str, document: str) -> str:
-        return Prompts._promptAnalyst.format(context=context, instruction=instruction, document=document)
+    def formatPromptAnalyst(instruction: str, context: str = "", document: str = "") -> str:
+        if document:
+            return Prompts._analyst_with_document.format(context=context, instruction=instruction, document=document)
+        else:
+            return Prompts._analyst.format(context=context, instruction=instruction)
