@@ -1,22 +1,16 @@
 from pydantic import BaseModel
-from typing import List, Optional, Tuple
-from fastapi import APIRouter, Request, UploadFile, File, HTTPException, status
+from typing import List, Any, Optional, Dict, Tuple
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-
+from llama_index.core.chat_engine.types import (
+    BaseChatEngine,
+)
+from llama_index.core.schema import NodeWithScore
 from llama_index.core.llms import ChatMessage, MessageRole
-from app.engine.index import get_index
-
-from app.engine.loaders.file import get_file_documents, FileLoaderConfig
-
-import os
-
-from app.core.prompts import Prompts
-
-from app.core.llm import TogetherChat
+from app.engine import get_chat_engine
 
 chat_router = r = APIRouter()
 
-# ** TYPES **
 
 class _Message(BaseModel):
     role: MessageRole
@@ -25,6 +19,41 @@ class _Message(BaseModel):
 
 class _ChatData(BaseModel):
     messages: List[_Message]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "What standards for letters exist?",
+                    }
+                ]
+            }
+        }
+
+
+class _SourceNodes(BaseModel):
+    id: str
+    metadata: Dict[str, Any]
+    score: Optional[float]
+
+    @classmethod
+    def from_source_node(cls, source_node: NodeWithScore):
+        return cls(
+            id=source_node.node.node_id,
+            metadata=source_node.node.metadata,
+            score=source_node.score,
+        )
+
+    @classmethod
+    def from_source_nodes(cls, source_nodes: List[NodeWithScore]):
+        return [cls.from_source_node(node) for node in source_nodes]
+
+
+class _Result(BaseModel):
+    result: _Message
+    nodes: List[_SourceNodes]
 
 
 async def parse_chat_data(data: _ChatData) -> Tuple[str, List[ChatMessage]]:
@@ -50,60 +79,37 @@ async def parse_chat_data(data: _ChatData) -> Tuple[str, List[ChatMessage]]:
     ]
     return last_message.content, messages
 
-# ** ROUTES **
+
+# streaming endpoint - delete if not needed
 @r.post("")
-async def chat(request: Request, data: _ChatData, file: Optional[UploadFile] = File(None)):
+async def chat(
+    request: Request,
+    data: _ChatData,
+    chat_engine: BaseChatEngine = Depends(get_chat_engine),
+):
+    last_message_content, messages = await parse_chat_data(data)
 
-    # ** Input Parser **
-    last_message, history = await parse_chat_data(data)
-
-    if file:
-        # ** Document Content **
-        data_dir = "tmp"
-        file_path = os.path.join(data_dir, file.filename)
-
-        with open(file_path, "wb") as temp_file:
-            contents = await file.read()
-            temp_file.write(contents)
-
-        config = FileLoaderConfig(
-            data_dir=file_path,
-            use_llama_parse=False,
-            use_unstructured=True
-        )
-
-        documents = get_file_documents(config)
-        content = documents[0].get_content()
-
-        formatted_prompt_keywords = Prompts.formatPromptKeywords(last_message, content)
-
-    else:
-        formatted_prompt_keywords = Prompts.formatPromptKeywords(last_message)
-
-    llm = TogetherChat()
-
-    keywords = llm.run(formatted_prompt_keywords)
-
-    index = get_index()
-
-    retriver = index.as_retriever()
-
-    nodes = retriver.retrieve(keywords)
-
-    # TODO: Implement a parser to get content and metadata for every node
-    context = [node.text for node in nodes]
-
-    if file:
-        formatted_prompt_analyst = Prompts.formatPromptAnalyst(last_message, context, content)
-    else:
-        formatted_prompt_analyst = Prompts.formatPromptAnalyst(last_message, context="")
-
-    response = await llm.run_chat(formatted_prompt_analyst, history)
+    response = await chat_engine.astream_chat(last_message_content, messages)
 
     async def event_generator():
-        async for token in response:
+        async for token in response.async_response_gen():
             if await request.is_disconnected():
                 break
             yield token
-        
+
     return StreamingResponse(event_generator(), media_type="text/plain")
+
+
+# non-streaming endpoint - delete if not needed
+@r.post("/request")
+async def chat_request(
+    data: _ChatData,
+    chat_engine: BaseChatEngine = Depends(get_chat_engine),
+) -> _Result:
+    last_message_content, messages = await parse_chat_data(data)
+
+    response = await chat_engine.achat(last_message_content, messages)
+    return _Result(
+        result=_Message(role=MessageRole.ASSISTANT, content=response.response),
+        nodes=_SourceNodes.from_source_nodes(response.source_nodes),
+    )

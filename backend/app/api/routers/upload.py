@@ -8,27 +8,28 @@ from pydantic import BaseModel, Field
 from backend.app.engine.loaders.file import get_file_documents, FileLoaderConfig
 from app.engine.index import get_index
 
-router = APIRouter()
+upload_router = r = APIRouter()
+
 
 class DocumentUpload(BaseModel):
     files: List[UploadFile] = Field(..., description="List of files to upload")
-    use_llama_parse: bool = Field(..., description="Whether to use Llama parse")
-    use_unstructured: bool = Field(..., description="Whether to use unstructured")
+    use_llama_parse: bool = Field(...,
+                                  description="Whether to use Llama parse")
+    use_unstructured: bool = Field(...,
+                                   description="Whether to use unstructured")
 
-@router.post("")
-async def upload_documents(docs: DocumentUpload):
-    # Create a temporary directory to store the uploaded files
+
+@r.post("")
+async def upload(docs: DocumentUpload):
+
     data_dir = "tmp"
     os.makedirs(data_dir, exist_ok=True)
 
-    # Save the uploaded files to the temporary directory
-    file_paths = []
     for file in docs.files:
         file_path = os.path.join(data_dir, file.filename)
         with open(file_path, "wb") as buffer:
             contents = await file.read()
             buffer.write(contents)
-        file_paths.append(file_path)
 
     # Prepare the configuration for the file loader
     config = FileLoaderConfig(
