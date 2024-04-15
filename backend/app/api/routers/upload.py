@@ -1,6 +1,6 @@
 import os
 import shutil
-from fastapi import APIRouter, File, UploadFile, Form, Depends
+from fastapi import APIRouter, File, UploadFile, Form, Depends, Request
 from typing import List, Annotated
 from pydantic import BaseModel, Field
 
@@ -12,29 +12,48 @@ from app.utils.as_form import as_form
 
 upload_router = r = APIRouter()
 
-@as_form
+
 class DocumentUpload(BaseModel):
-    files: List[UploadFile] = Field(..., description="List of files to upload")
-    use_llama_parse: bool = Field(..., description="Whether to use Llama parse")
-    use_unstructured: bool = Field(..., description="Whether to use unstructured")
+    files: List[UploadFile]
+    use_llama_parse: bool
+    use_unstructured: bool
+
+    @classmethod
+    async def get_fields(cls, request: Request):
+        form = await request.form()
+        files: List[UploadFile] = []
+        for field_name, field_value in form.items():
+            if field_name.startswith("file-"):
+                files.append(field_value)
+
+        # Other fields
+        use_llama_parse = bool(form.get("use_llama_parse"))
+        use_unstructured = bool(form.get("use_unstructured"))
+
+        return cls(files=files, use_llama_parse=use_llama_parse, use_unstructured=use_unstructured)
+
 
 @r.post("")
-async def upload(docs: DocumentUpload = Depends(DocumentUpload.as_form)):
-    print(type(docs.use_llama_parse))
+async def upload(data: DocumentUpload = Depends(DocumentUpload.get_fields)):
+    print(type(data.files))
+    print(type(data.use_llama_parse))
     data_dir = "tmp"
     os.makedirs(data_dir, exist_ok=True)
 
-    for file in docs.files:
-        file_path = os.path.join(data_dir, file.filename)
-        with open(file_path, "wb") as buffer:
-            contents = await file.read()
-            buffer.write(contents)
-
+    for file in data.files:
+        if file is not None:
+            print(file)
+            file_path = os.path.join(data_dir, file.filename)
+            with open(file_path, "wb") as buffer:
+                contents = await file.read()
+                buffer.write(contents)
+        else:
+            print("File is None. Skipping...")
     # Prepare the configuration for the file loader
     config = FileLoaderConfig(
         data_dir=data_dir,
-        use_llama_parse=docs.use_llama_parse,
-        use_unstructured=docs.use_unstructured,
+        use_llama_parse=data.use_llama_parse,
+        use_unstructured=data.use_unstructured,
     )
 
     try:

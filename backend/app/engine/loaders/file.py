@@ -50,8 +50,10 @@ def get_file_documents(config: FileLoaderConfig):
     """
     from llama_index.core.readers import SimpleDirectoryReader
 
+    print(config.data_dir)
+
     reader = SimpleDirectoryReader(
-        config.data_dir,
+        input_dir=config.data_dir,
         recursive=True,
     )
     if config.use_llama_parse:
