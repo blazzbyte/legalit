@@ -1,7 +1,7 @@
 import os
 from llama_parse import LlamaParse
 from llama_index.readers.file import UnstructuredReader
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # ** PARSERS **
 
@@ -37,7 +37,7 @@ class FileLoaderConfig(BaseModel):
     use_unstructured: bool = Field(
         False, description="Whether to use unstructured")
 
-    @Field.validator("data_dir", pre=True)
+    @field_validator("data_dir")
     def data_dir_must_exist(cls, value):
         if not os.path.isdir(value):
             raise ValueError(f"Directory '{value}' does not exist")

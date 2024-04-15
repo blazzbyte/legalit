@@ -25,12 +25,30 @@ const ContextUploader = () => {
         setFiles([]);
     };
 
-    const submitFiles = () => {
-        const fileNames = files.map(file => file.name);
-        setNames(fileNames);
-        console.log("Submitting files:", files);
-        clearFiles();
-        setIsSubmitted(true);
+    const submitFiles = async () => {
+        const formData = new FormData();
+        
+        formData.append('use_llama_parse', String(true));
+        formData.append('use_unstructured', String(false));
+        
+        try {
+            const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload documents');
+            }
+
+            const result = await response.json();
+            console.log(result);
+            setNames(files.map(file => file.name));
+            clearFiles();
+            setIsSubmitted(true);
+        } catch (error) {
+            console.error('Error uploading documents:', (error as Error).message);
+        }
     };
 
     return (

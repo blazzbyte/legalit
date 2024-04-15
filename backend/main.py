@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.api.routers.chat import chat_router
-from app.api.routers.upload import router
+from app.api.routers.upload import upload_router
 from app.settings import init_settings
 
 
@@ -38,7 +38,7 @@ if environment == "dev":
 
 
 app.include_router(chat_router, prefix="/api/chat")
-app.include_router(router, prefix="/api/upload")
+app.include_router(upload_router, prefix="/api/upload")
 
 
 if __name__ == "__main__":

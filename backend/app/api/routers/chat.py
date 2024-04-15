@@ -92,6 +92,7 @@ async def chat(request: Request, data: _ChatData, file: Optional[UploadFile] = F
 
     # TODO: Implement a parser to get content and metadata for every node
     context = [node.text for node in nodes]
+    metadata = [node.metadata for node in nodes]
 
     if file:
         formatted_prompt_analyst = Prompts.formatPromptAnalyst(last_message, context, content)

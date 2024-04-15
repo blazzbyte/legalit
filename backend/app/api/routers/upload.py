@@ -1,27 +1,26 @@
 import os
 import shutil
-from fastapi import APIRouter, File, UploadFile, Form
-from typing import List
+from fastapi import APIRouter, File, UploadFile, Form, Depends
+from typing import List, Annotated
 from pydantic import BaseModel, Field
 
 # Import the required functions for processing the uploaded documents
-from backend.app.engine.loaders.file import get_file_documents, FileLoaderConfig
+from app.engine.loaders.file import get_file_documents, FileLoaderConfig
 from app.engine.index import get_index
+
+from app.utils.as_form import as_form
 
 upload_router = r = APIRouter()
 
-
+@as_form
 class DocumentUpload(BaseModel):
     files: List[UploadFile] = Field(..., description="List of files to upload")
-    use_llama_parse: bool = Field(...,
-                                  description="Whether to use Llama parse")
-    use_unstructured: bool = Field(...,
-                                   description="Whether to use unstructured")
-
+    use_llama_parse: bool = Field(..., description="Whether to use Llama parse")
+    use_unstructured: bool = Field(..., description="Whether to use unstructured")
 
 @r.post("")
-async def upload(docs: DocumentUpload):
-
+async def upload(docs: DocumentUpload = Depends(DocumentUpload.as_form)):
+    print(type(docs.use_llama_parse))
     data_dir = "tmp"
     os.makedirs(data_dir, exist_ok=True)
 
