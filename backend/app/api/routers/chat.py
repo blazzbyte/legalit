@@ -106,5 +106,6 @@ async def chat(request: Request, data: _ChatData, file: Optional[UploadFile] = F
             if await request.is_disconnected():
                 break
             yield token
-        
+        yield metadata
+
     return StreamingResponse(event_generator(), media_type="text/plain")

@@ -15,6 +15,7 @@ upload_router = r = APIRouter()
 
 class DocumentUpload(BaseModel):
     files: List[UploadFile]
+    user_id: str
     use_llama_parse: bool
     use_unstructured: bool
 
@@ -26,11 +27,12 @@ class DocumentUpload(BaseModel):
             if field_name.startswith("file-"):
                 files.append(field_value)
 
+        user_id = form.get("user_id", "default").lower()
         # Other fields
         use_llama_parse = form.get("use_llama_parse", "").lower() == "true"
         use_unstructured = form.get("use_unstructured", "").lower() == "true"
 
-        return cls(files=files, use_llama_parse=use_llama_parse, use_unstructured=use_unstructured)
+        return cls(files=files, user_id=user_id, use_llama_parse=use_llama_parse, use_unstructured=use_unstructured)
 
 
 @r.post("")
@@ -49,14 +51,19 @@ async def upload(data: DocumentUpload = Depends(DocumentUpload.get_fields)):
             print("File is None. Skipping...")
     # Prepare the configuration for the file loader
     config = FileLoaderConfig(
-        data_dir=data_dir,
-        use_llama_parse=data.use_llama_parse,
-        use_unstructured=data.use_unstructured,
+        data_dir = data_dir,
+        user_id = data.user_id,
+        use_llama_parse = data.use_llama_parse,
+        use_unstructured = data.use_unstructured,
     )
 
     try:
         # Load the documents
         documents = get_file_documents(config)
+
+        for document in documents:
+            new_metadata = {key if key != 'filename' else 'title': document.metadata[key] for key in ['user_id', 'filename'] if key in document.metadata}
+            document.metadata = new_metadata
 
         # Create index from documents
         get_index().from_documents(documents)

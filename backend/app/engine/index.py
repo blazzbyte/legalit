@@ -1,5 +1,4 @@
 import logging
-import os
 
 from llama_index.indices.managed.vectara import VectaraIndex
 

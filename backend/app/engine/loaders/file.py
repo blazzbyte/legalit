@@ -34,6 +34,7 @@ def unstructured_loader():
 class FileLoaderConfig(BaseModel):
     data_dir: str = Field(
         "data", description="Directory where files are stored")
+    user_id: str = Field(default='default', description="here goes the user id for session to be able of charge their own laws")
     use_llama_parse: bool = Field(
         False, description="Whether to use Llama parse")
     use_unstructured: bool = Field(
@@ -67,7 +68,7 @@ def get_file_documents(config: FileLoaderConfig):
         loader = unstructured_loader()
 
         for pdf_file in pdf_files:
-            docs = loader.load_data(file=pdf_file, split_documents=False)
+            docs = loader.load_data(file=pdf_file, extra_info={'user_id': config.user_id}, split_documents=True)
 
             for doc in docs:
                 all_docs.append(doc)
