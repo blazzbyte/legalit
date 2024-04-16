@@ -27,22 +27,20 @@ class DocumentUpload(BaseModel):
                 files.append(field_value)
 
         # Other fields
-        use_llama_parse = bool(form.get("use_llama_parse"))
-        use_unstructured = bool(form.get("use_unstructured"))
+        use_llama_parse = form.get("use_llama_parse", "").lower() == "true"
+        use_unstructured = form.get("use_unstructured", "").lower() == "true"
 
         return cls(files=files, use_llama_parse=use_llama_parse, use_unstructured=use_unstructured)
 
 
 @r.post("")
 async def upload(data: DocumentUpload = Depends(DocumentUpload.get_fields)):
-    print(type(data.files))
-    print(type(data.use_llama_parse))
-    data_dir = "tmp"
+
+    data_dir: str = "tmp"
     os.makedirs(data_dir, exist_ok=True)
 
     for file in data.files:
         if file is not None:
-            print(file)
             file_path = os.path.join(data_dir, file.filename)
             with open(file_path, "wb") as buffer:
                 contents = await file.read()
@@ -61,8 +59,7 @@ async def upload(data: DocumentUpload = Depends(DocumentUpload.get_fields)):
         documents = get_file_documents(config)
 
         # Create index from documents
-        index = get_index()
-        index.from_documents(documents)
+        get_index().from_documents(documents)
 
         # Clean up the temporary directory
         shutil.rmtree(data_dir)
