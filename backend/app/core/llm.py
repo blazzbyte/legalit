@@ -6,7 +6,7 @@ from typing import Sequence
 
 class TogetherChat:
     # ** Init **
-    def __init__(self, generative_model="mistralai/Mixtral-8x7B-Instruct-v0.1", temperature=0.8, max_tokens=256, top_p=0.7, top_k=50, is_chat_model=False):
+    def __init__(self, generative_model="mistralai/Mixtral-8x22B-Instruct-v0.1", temperature=0.8, max_tokens=8000, top_p=0.7, top_k=50, is_chat_model=False):
         self.generative_model = generative_model
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -16,40 +16,22 @@ class TogetherChat:
 
     # ** LLM Model **
 
-    def _completion_to_prompt(completion: str) -> str:
-        return f"<s>[] {completion} [/] </s>\n"
-
-    def run(self, query: str):
+    def run(self, query: str) -> str:
 
         llm = TogetherLLM(
             self.generative_model,
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            max_tokens=40,
             top_p=self.top_p,
             top_k=self.top_k,
             is_chat_model=self.is_chat_model,
-            completion_to_prompt=self._completion_to_prompt
         )
 
-        return llm.complete(query)
-    
+        response = llm.complete(query)
+
+        return response.text
+
     # ** Chat Model **
-
-    def _messages_to_prompt(messages: Sequence[ChatMessage]) -> str:
-        """Convert messages to a prompt string."""
-        string_messages = []
-        for message in messages:
-            role = message.role
-            content = message.content
-            string_message = f"{role.value}: {content}"
-
-            addtional_kwargs = message.additional_kwargs
-            if addtional_kwargs:
-                string_message += f"\n{addtional_kwargs}"
-            string_messages.append(string_message)
-
-        string_messages.append(f"{MessageRole.ASSISTANT.value}: ")
-        return "\n".join(string_messages)
 
     def run_chat(self, last_message: str, history: Sequence[ChatMessage]):
         llm = TogetherLLM(
@@ -58,12 +40,13 @@ class TogetherChat:
             max_tokens=self.max_tokens,
             top_p=self.top_p,
             top_k=self.top_k,
-            is_chat_model=self.is_chat_model,
-            messages_to_prompt=self._messages_to_prompt
+            is_chat_model=True
         )
 
-        last_chat_message = ChatMessage(MessageRole.USER, last_message)
+        last_chat_message = ChatMessage(
+            role="user", content=last_message)
 
-        messages = [history, last_chat_message]
+        messages = history.copy()
+        messages.append(last_chat_message)
 
         return llm.stream_chat(messages)

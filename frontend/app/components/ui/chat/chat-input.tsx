@@ -2,65 +2,103 @@ import { useState } from "react";
 import { Button } from "../button";
 import FileUploader from "../file-uploader";
 import { Input } from "../input";
-import UploadImagePreview from "../upload-image-preview";
+import UploadFilePreview from "../upload-file-preview";
 import { ChatHandler } from "./chat.interface";
+import axios from "axios";
+import { useUser } from "@/app/contexts/user-context";
 
 export default function ChatInput(
   props: Pick<
     ChatHandler,
     | "isLoading"
     | "input"
-    | "onFileUpload"
-    | "onFileError"
     | "handleSubmit"
     | "handleInputChange"
+    | "onFileUpload"
+    | "onFileError"
+    | "onRemoveFile"
   > & {
     multiModal?: boolean;
   },
 ) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const { uploadedContext } = useUser()
+
+  const [file, setFile] = useState<File | null>(null);
+  const [urlFile, setUrlFile] = useState<string | null>(null);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (imageUrl) {
+    if (file) {
+      submitFiles()
       props.handleSubmit(e, {
-        data: { imageUrl: imageUrl },
+        data: {
+          user_id: "testing",
+          use_llama_parse: true,
+          use_unstructured: false
+        },
       });
-      setImageUrl(null);
-      return;
+
+    } else {
+      props.handleSubmit(e);
     }
-    props.handleSubmit(e);
   };
 
-  const onRemovePreviewImage = () => setImageUrl(null);
+  const submitFiles = async () => {
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('user_id', "testing");
 
-  const handleUploadImageFile = async (file: File) => {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-    setImageUrl(base64);
-  };
+      try {
+        const response = await axios.post(process.env.NEXT_PUBLIC_API_URL + '/api/upload/document', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
 
-  const handleUploadFile = async (file: File) => {
-    try {
-      if (props.multiModal && file.type.startsWith("image/")) {
-        return await handleUploadImageFile(file);
+        if (response.status !== 200) {
+          throw new Error('Failed to upload documents');
+        }
+        if (props.onFileUpload && urlFile) {
+          props.onFileUpload(urlFile, file.name)
+        }
+        onRemoveFile()
+      } catch (error) {
+        console.error('Error uploading documents:', (error as Error).message);
       }
-      props.onFileUpload?.(file);
-    } catch (error: any) {
-      props.onFileError?.(error.message);
     }
   };
+
+  const onRemoveFile = () => {
+    setFile(null);
+    setUrlFile(null);
+  };
+
+  const onRemove = () => {
+    if (props.onRemoveFile) {
+      props.onRemoveFile()
+    }
+    onRemoveFile()
+  }
+
+  const onUpload = async (file: File) => {
+    if (props.multiModal && file.type.startsWith("application/pdf")) {
+      setFile(file)
+      setUrlFile(URL.createObjectURL(file));
+    }
+  };
+
+  const onFileError = (errMsg: any) => {
+    console.log(errMsg)
+  }
 
   return (
     <form
       onSubmit={onSubmit}
       className="rounded-xl bg-white p-4 shadow-xl space-y-4"
     >
-      {imageUrl && (
-        <UploadImagePreview url={imageUrl} onRemove={onRemovePreviewImage} />
+      {file && file.type === "application/pdf" && urlFile && (
+        <UploadFilePreview url={urlFile} onRemove={onRemove} />
       )}
       <div className="flex w-full items-start justify-between gap-4 ">
         <Input
@@ -70,12 +108,17 @@ export default function ChatInput(
           className="flex-1"
           value={props.input}
           onChange={props.handleInputChange}
+          disabled={!uploadedContext}
         />
         <FileUploader
-          onFileUpload={handleUploadFile}
-          onFileError={props.onFileError}
+          onFileUpload={onUpload}
+          onFileError={onFileError}
+          config={{
+            allowedExtensions: ["application/pdf"],
+            disabled: file !== null || !uploadedContext,
+          }}
         />
-        <Button type="submit" disabled={props.isLoading}>
+        <Button type="submit" disabled={props.isLoading || !uploadedContext}>
           Send message
         </Button>
       </div>

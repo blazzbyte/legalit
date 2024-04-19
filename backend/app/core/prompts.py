@@ -1,36 +1,40 @@
 class Prompts:
 
-    _keywords = """
-    # USER INSTRUCTION
+    _keywords = '''
+    USER QUESTION:
     {instruction}
-    Considering the user's instruction and the content of the legal document to be reviewed, it generates a list of terms or keywords to perform a search in a repository of applicable regulations and laws. These terms should be descriptive, not too short to create ambiguity, nor too long to reduce the efficiency of the search.
-    """
+    """Based on the user question, give me one or more keywords and variation of these keywords related to legal that can help answer the user question. A few examples: Article 87, section II"""
+    '''
 
-    _keywords_with_document = """
-    # USER INSTRUCTION
-    {instruction}
-    # LEGAL DOCUMENT
+    _keywords_with_document = '''
+    DOCUMENT:
     {document}
-    Considering the user's instruction and the content of the legal document to be reviewed, it generates a list of terms or keywords to perform a search in a repository of applicable regulations and laws. These terms should be descriptive, not too short to create ambiguity, nor too long to reduce the efficiency of the search.
-    """
-
-    _analyst = """
-    # LEGAL CONTEXT
-    {context}
-    Considering the legal context. Respond the user question as better as you can:
-    # USER QUESTION
+    USER QUESTION:
     {instruction}
-    """
+    INSTRUCTION:
+    """Based on the document, give me one or more keywords and variation of these keywords related to legal that can help answer the user question. A few examples: Art. 87, Article 87, section 12, civil law, etc."""
+    KEYWORDS:
+    '''
 
-    _analyst_with_document = """
-    # LEGAL CONTEXT
+    _analyst = '''
+    # LEGAL CONTEXT:
     {context}
-    # USER INSTRUCTION
+    """Based on the legal context. Respond the user question as better as you can:"""
+    # USER QUESTION:
     {instruction}
-    # LEGAL DOCUMENT
+    '''
+
+    _analyst_with_document = '''
+    LEGAL CONTEXT:
+    {context}
+    DOCUMENT:
     {document}
-    Considering the legal context extracted according to a regulatory review, and the user's instruction. Analyze each clause and provision of the legal document, looking for possible areas of compliance or non-compliance. Provide a detailed report summarizing your findings, including any discrepancies or potential risks of non-compliance. Ensure the assessment is thorough and accurate, providing clear recommendations and corrective actions if necessary.
-    """
+    """Based on the legal context and reviewing each part of the document. Respond the user question as better as you can:"""
+    USER QUESTION:
+    {instruction}
+    '''
+
+    # #### Analyze each clause and provision of the legal document, looking for possible areas of compliance or non-compliance. Provide a detailed report summarizing your findings, including any discrepancies or potential risks of non-compliance. Ensure the assessment is thorough and accurate, providing clear recommendations and corrective actions if necessary.
 
     @staticmethod
     def formatPromptKeywords(instruction: str, document: str = "") -> str:

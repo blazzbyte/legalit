@@ -51,10 +51,10 @@ async def upload(data: DocumentUpload = Depends(DocumentUpload.get_fields)):
             print("File is None. Skipping...")
     # Prepare the configuration for the file loader
     config = FileLoaderConfig(
-        data_dir = data_dir,
-        user_id = data.user_id,
-        use_llama_parse = data.use_llama_parse,
-        use_unstructured = data.use_unstructured,
+        data_dir=data_dir,
+        user_id=data.user_id,
+        use_llama_parse=data.use_llama_parse,
+        use_unstructured=data.use_unstructured,
     )
 
     try:
@@ -62,7 +62,8 @@ async def upload(data: DocumentUpload = Depends(DocumentUpload.get_fields)):
         documents = get_file_documents(config)
 
         for document in documents:
-            new_metadata = {key if key != 'filename' else 'title': document.metadata[key] for key in ['user_id', 'filename'] if key in document.metadata}
+            new_metadata = {key if key != 'filename' else 'title': document.metadata[key] for key in [
+                'user_id', 'filename'] if key in document.metadata}
             document.metadata = new_metadata
 
         # Create index from documents
@@ -76,3 +77,20 @@ async def upload(data: DocumentUpload = Depends(DocumentUpload.get_fields)):
         # Clean up the temporary directory in case of an error
         shutil.rmtree(data_dir)
         raise e
+
+
+@r.post("/document")
+async def upload(file: Annotated[UploadFile, File()], user_id: Annotated[str, Form()]):
+
+    data_dir: str = user_id
+    os.makedirs(data_dir, exist_ok=True)
+
+    if file is not None:
+        file_path = os.path.join(data_dir, file.filename)
+        with open(file_path, "wb") as buffer:
+            contents = await file.read()
+            buffer.write(contents)
+    else:
+        print("File is None. Skipping...")
+
+    return {"message": "Documents processed successfully"}

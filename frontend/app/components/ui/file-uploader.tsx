@@ -61,8 +61,8 @@ export default function FileUploader({
 
   const handleUpload = async (file: File) => {
     const onFileUploadError = onFileError || window.alert;
-    const fileExtension = file.name.split(".").pop() || "";
-    const extensionFileError = checkExtension(fileExtension);
+    // const fileExtension = file.name.split(".").pop() || "";
+    const extensionFileError = checkExtension(file.type);
     if (extensionFileError) {
       return onFileUploadError(extensionFileError);
     }
@@ -90,14 +90,15 @@ export default function FileUploader({
         htmlFor={inputId}
         className={cn(
           buttonVariants({ variant: "secondary", size: "icon" }),
-          "cursor-pointer",
+          'cursor-pointer',
           uploading && "opacity-50",
+          config?.disabled && 'cursor-not-allowed'
         )}
       >
         {uploading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <Paperclip className="-rotate-45 w-4 h-4" />
+          <Paperclip className={`-rotate-45 w-4 h-4 ${config?.disabled || uploading ? 'cursor-not-allowed' : ''}`} />
         )}
       </label>
     </div>

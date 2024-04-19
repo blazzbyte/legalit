@@ -2,7 +2,7 @@ import Image from "next/image";
 
 const Footer = () => {
   return (
-    <div className="max-w-5xl w-full pt-2 items-center justify-between font-mono text-sm lg:flex">
+    <div className="w-full pt-2 items-center justify-between font-mono text-sm lg:flex">
       <p className="">
         Develovep by&nbsp;
         <a href="" target="_blank" className="font-mono font-bold">Blazzbyte</a>

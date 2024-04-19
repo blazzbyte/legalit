@@ -15,5 +15,5 @@ def get_index():
         parallelize_ingest=False,
     )
     
-    logger.info("Index from Milvus created.")
+    logger.info("Index from Vectara created.")
     return index

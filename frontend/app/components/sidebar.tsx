@@ -11,13 +11,13 @@ const sidebar = () => {
             </a>
             <div className='flex flex-col gap-2'>
                 <h4 className='text-sky-600 font-bold'>Legal Context</h4>
-                <p className='text-sm'>Upload relevant legal documents</p>
+                <p className='text-sm'>Upload relevant legal documents that will be used as context.</p>
                 <ContextUploader />
             </div>
-            <div className='flex flex-col gap-2'>
+            {/* <div className='flex flex-col gap-2'>
                 <h4 className='text-sky-600 font-bold'>Key Elements (Optional)</h4>
                 <p className='text-sm'>Key elements that must be reviewed in the document</p>
-            </div>
+            </div> */}
         </nav>
     )
 }

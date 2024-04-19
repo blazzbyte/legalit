@@ -1,4 +1,4 @@
-import { Message } from "ai";
+import { Message, CreateMessage, ChatRequestOptions } from "ai";
 
 export interface ChatHandler {
   messages: Message[];
@@ -13,6 +13,8 @@ export interface ChatHandler {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   reload?: () => void;
   stop?: () => void;
-  onFileUpload?: (file: File) => Promise<void>;
+  onFileUpload?: (file_url: string, file_name: string) => void;
+  onRemoveFile?: () => void;
   onFileError?: (errMsg: string) => void;
+  append: (message: any, chatRequestOptions?: ChatRequestOptions) => Promise<string | null | undefined>;
 }

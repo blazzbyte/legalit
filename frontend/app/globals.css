@@ -105,3 +105,7 @@
       radial-gradient(at 8% 40%, rgba(251, 218, 239, 0.46) 0, transparent 50%);
   } */
 }
+
+embed {
+  overflow: hidden !important;
+}
